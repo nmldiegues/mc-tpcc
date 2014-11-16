@@ -6,8 +6,6 @@ import java.util.List;
 
 import jvstm.VBox;
 
-import org.radargun.CacheWrapper;
-
 import pt.inesc.gsd.tpcc.ElementNotFoundException;
 import pt.inesc.gsd.tpcc.TpccTools;
 import pt.inesc.gsd.tpcc.domain.Company;
@@ -65,14 +63,14 @@ public class NewOrderTransaction implements TpccTransaction {
          orderQuantities[i] = tpccTools.randomNumber(1, TpccTools.NB_MAX_DISTRICT); //see clause 2.4.1.5 (dot 6)
       }
       // clause 2.4.1.5 (dot 1)
-      if (tpccTools.randomNumber(1, 100) == 1)
-         this.itemIDs[this.numItems - 1] = -12345;
+      /* if (tpccTools.randomNumber(1, 100) == 1)
+         this.itemIDs[this.numItems - 1] = -12345; */
 
    }
 
    @Override
-   public void executeTransaction(CacheWrapper cacheWrapper) throws Throwable {
-      newOrderTransaction(cacheWrapper);
+   public void executeTransaction() throws Throwable {
+      newOrderTransaction();
    }
 
    @Override
@@ -80,7 +78,7 @@ public class NewOrderTransaction implements TpccTransaction {
       return false;
    }
 
-   private void newOrderTransaction(CacheWrapper cacheWrapper) throws Throwable {
+   private void newOrderTransaction() throws Throwable {
       long o_id = -1, s_quantity;
       String i_data, s_data;
 

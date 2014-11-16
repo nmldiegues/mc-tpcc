@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.radargun.CacheWrapper;
-
 import pt.inesc.gsd.tpcc.TpccTerminal;
 import pt.inesc.gsd.tpcc.TpccTools;
 import pt.inesc.gsd.tpcc.domain.Company;
@@ -33,7 +31,7 @@ public class PaymentTransaction implements TpccTransaction {
 
    private final double paymentAmount;
 
-   public PaymentTransaction(TpccTools tpccTools, int slaveIndex, int warehouseID) {
+   public PaymentTransaction(TpccTools tpccTools, int warehouseID) {
 
       if (warehouseID <= 0) {
          this.terminalWarehouseID = tpccTools.randomNumber(1, TpccTools.NB_WAREHOUSES);
@@ -61,24 +59,20 @@ public class PaymentTransaction implements TpccTransaction {
       if (y <= 60) {
          this.customerByName = true;
          customerLastName = lastName((int) tpccTools.nonUniformRandom(TpccTools.C_C_LAST, TpccTools.A_C_LAST, 0, TpccTools.MAX_C_LAST));
-         this.customerID = -1;
       } else {
          this.customerByName = false;
-         this.customerID = tpccTools.nonUniformRandom(TpccTools.C_C_ID, TpccTools.A_C_ID, 1, TpccTools.NB_MAX_CUSTOMER);
          this.customerLastName = null;
       }
+      this.customerID = tpccTools.nonUniformRandom(TpccTools.C_C_ID, TpccTools.A_C_ID, 1, TpccTools.NB_MAX_CUSTOMER);
 
       this.paymentAmount = tpccTools.randomNumber(100, 500000) / 100.0;
 
 
    }
    
-   public static CacheWrapper WRAPPER;
-
    @Override
-   public void executeTransaction(CacheWrapper cacheWrapper) throws Throwable {
-       WRAPPER = cacheWrapper;
-      paymentTransaction(cacheWrapper);
+   public void executeTransaction() throws Throwable {
+      paymentTransaction();
    }
 
    @Override
@@ -90,7 +84,7 @@ public class PaymentTransaction implements TpccTransaction {
       return TpccTerminal.nameTokens[(num / 100) % TpccTerminal.nameTokens.length] + TpccTerminal.nameTokens[(num / 10) % TpccTerminal.nameTokens.length] + TpccTerminal.nameTokens[num % TpccTerminal.nameTokens.length];
    }
 
-   private void paymentTransaction(final CacheWrapper cacheWrapper) throws Throwable {
+   private void paymentTransaction() throws Throwable {
       String w_name;
       String d_name;
       long nameCnt;
@@ -111,6 +105,7 @@ public class PaymentTransaction implements TpccTransaction {
     	  District district = warehouse.districts.get().get((int)districtID - 1);
     	  List<Customer> cList = district.customersByName.get().get(customerLastName);
     	  
+    	  if(cList != null) {
          nameCnt = cList.size();
 
          if (nameCnt % 2 == 1) nameCnt++;
@@ -119,7 +114,10 @@ public class PaymentTransaction implements TpccTransaction {
          for (int i = 1; i <= nameCnt / 2; i++) {
             c = itr.next();
          }
-
+    	  }
+    	  else {
+    		  c = district.customers.get().get((int)customerID - 1);
+    	  }
       } else {
          // clause 2.6.2.2 (dot 3, Case 1)
     	  Warehouse warehouse = Company.warehouses.get().get((int)terminalWarehouseID - 1);

@@ -5,8 +5,6 @@ import java.util.Map;
 
 import jvstm.VBox;
 
-import org.radargun.CacheWrapper;
-
 public class District {
 
    private long d_id;
@@ -44,7 +42,7 @@ public class District {
    public District() {
    }
 
-   public District(CacheWrapper wrapper, long d_w_id, long d_id, String d_name, String d_street1, String d_street2, String d_city, String d_state, String d_zip, double d_tax, double d_ytd, long d_next_o_id) {
+   public District(long d_w_id, long d_id, String d_name, String d_street1, String d_street2, String d_city, String d_state, String d_zip, double d_tax, double d_ytd, long d_next_o_id) {
       this.d_w_id = d_w_id;
       this.d_id = d_id;
       this.d_name = d_name;

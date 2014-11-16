@@ -11,8 +11,6 @@ import java.util.Map;
 
 import jvstm.VBox;
 
-import org.radargun.CacheWrapper;
-
 import pt.inesc.gsd.tpcc.domain.Company;
 import pt.inesc.gsd.tpcc.domain.Customer;
 import pt.inesc.gsd.tpcc.domain.District;
@@ -36,8 +34,6 @@ public class TpccPopulation {
 
 	private final int _seqIdCustomer[];
 
-	protected final CacheWrapper wrapper;
-
 	private final MemoryMXBean memoryBean;
 
 	protected final int numWarehouses;
@@ -50,14 +46,13 @@ public class TpccPopulation {
 
 	private final boolean populateLocalOnly;
 
-	public TpccPopulation(CacheWrapper wrapper, int numWarehouses, long cLastMask,
+	public TpccPopulation(int numWarehouses, long cLastMask,
 			long olIdMask, long cIdMask) {
-		this(wrapper, numWarehouses, cLastMask, olIdMask, cIdMask, false);            
+		this(numWarehouses, cLastMask, olIdMask, cIdMask, false);            
 	}
 
-	public TpccPopulation(CacheWrapper wrapper, int numWarehouses, long cLastMask,
+	public TpccPopulation(int numWarehouses, long cLastMask,
 			long olIdMask, long cIdMask, boolean populateLocalOnly) {
-		this.wrapper = wrapper;
 		this._seqIdCustomer = new int[TpccTools.NB_MAX_CUSTOMER];
 		this.memoryBean = ManagementFactory.getMemoryMXBean();
 		this.numWarehouses = numWarehouses;
@@ -77,53 +72,14 @@ public class TpccPopulation {
 	}
 
 	public void performPopulation(){
-		initializeToolsParameters();
-
+		
+		initTpccTools();
+		
 		populateItem();
 
 		populateWarehouses();
 
 		System.gc();
-	}
-
-
-	protected void initializeToolsParameters() {
-		initTpccTools();
-
-		long c_c_last = tpccTools.get().randomNumber(0, TpccTools.A_C_LAST);
-		long c_c_id = tpccTools.get().randomNumber(0, TpccTools.A_C_ID);
-		long c_ol_i_id = tpccTools.get().randomNumber(0, TpccTools.A_OL_I_ID);
-
-		boolean successful = false;
-		while (!successful) {
-			try {
-				wrapper.put("C_C_LAST", c_c_last);
-				successful = true;
-			} catch (Throwable e) {
-				System.err.println(e);
-			}
-		}
-
-		successful = false;
-		while (!successful) {
-			try {
-				wrapper.put("C_C_ID", c_c_id);
-				successful = true;
-			} catch (Throwable e) {
-				System.err.println(e);
-			}
-		}
-
-		successful = false;
-		while (!successful) {
-			try {
-				wrapper.put("C_OL_ID", c_ol_i_id);
-				successful = true;
-			} catch (Throwable e) {
-				System.err.println(e);
-			}
-		}
-
 	}
 
 	public String c_last() {
@@ -165,7 +121,6 @@ public class TpccPopulation {
 
 		int init_id_item = 1;
 		int num_of_items = (int) TpccTools.NB_MAX_ITEM;
-		logItemsPopulation(init_id_item, init_id_item - 1 + num_of_items);
 		List<Item> items = new ArrayList<Item>(num_of_items);
 		for (int itemId = init_id_item; itemId <= (init_id_item - 1 + num_of_items); itemId++) {
 			items.add(createItem(itemId));
@@ -193,12 +148,9 @@ public class TpccPopulation {
 			System.err.println("Trying to populate Stock for a negative warehouse ID. skipping...");
 			return;
 		}
-		System.out.println("Populating Stock for warehouse " + warehouseId);
-
 		int init_id_item = 1;
 		int num_of_items = (int) TpccTools.NB_MAX_ITEM;
 		List<Stock> stocks = new ArrayList<Stock>(num_of_items);
-		logStockPopulation(warehouseId, init_id_item, init_id_item - 1 + num_of_items);
 		for (int stockId = init_id_item; stockId <= (init_id_item - 1 + num_of_items); stockId++) {
 			stocks.add(createStock(stockId, warehouseId));
 		}
@@ -210,12 +162,9 @@ public class TpccPopulation {
 			System.err.println("Trying to populate Districts for a negative warehouse ID. skipping...");
 			return;
 		}
-		System.out.println("Populating District for warehouse " + warehouseId);
-
 		int init_districtId = 1;
 		int num_of_districts = TpccTools.NB_MAX_DISTRICT;
 		List<District> districts = new ArrayList<District>(num_of_districts);
-		logDistrictPopulation(warehouseId, init_districtId, init_districtId - 1 + num_of_districts);
 		for (int districtId = init_districtId; districtId <= (init_districtId - 1 + num_of_districts); districtId++) {
 			District district = createDistrict(districtId, warehouseId);
 			districts.add(district);
@@ -234,7 +183,6 @@ public class TpccPopulation {
 		List<Customer> customers = new ArrayList<Customer>(TpccTools.NB_MAX_CUSTOMER);
 		Map<String, List<Customer>> customersByName = new HashMap<String, List<Customer>>();
 		
-		logCustomerPopulation(warehouseId, districtId, 1, TpccTools.NB_MAX_CUSTOMER);
 		for (int customerId = 1; customerId <= TpccTools.NB_MAX_CUSTOMER; customerId++) {
 			String c_last = c_last();
 			Customer customer = createCustomer(warehouseId, districtId, customerId, c_last);
@@ -242,6 +190,7 @@ public class TpccPopulation {
 			List<Customer> listCustomer = customersByName.get(c_last);
 			if (listCustomer == null) {
 				listCustomer = new ArrayList<Customer>();
+				customersByName.put(c_last, listCustomer);
 			}
 			listCustomer.add(customer);
 
@@ -257,9 +206,6 @@ public class TpccPopulation {
 			return;
 		}
 
-		System.out.println("Populating History for warehouse " + warehouseId + ", district " + districtId + " and customer " +
-				customerId);
-
 		List<History> histories = new ArrayList<History>();
 		histories.add(createHistory(customerId, districtId, warehouseId));
 		customer.histories = new VBox<List<History>>(histories);
@@ -272,7 +218,6 @@ public class TpccPopulation {
 			return;
 		}
 
-		logOrderPopulation(warehouseId, districtId, 1, TpccTools.NB_MAX_ORDER);
 		this._new_order = false;
 		for (int orderId = 1; orderId <= TpccTools.NB_MAX_ORDER; orderId++) {
 
@@ -289,7 +234,7 @@ public class TpccPopulation {
 				populateNewOrder(order, warehouseId, districtId, orderId);
 			}
 			
-			Customer customer = district.customers.get().get((int)order.getO_c_id());
+			Customer customer = district.customers.get().get((int)order.getO_c_id() - 1);
 			List<Order> orders = new ArrayList<Order>(customer.orders.get());
 			orders.add(order);
 			customer.orders.put(orders);
@@ -303,8 +248,6 @@ public class TpccPopulation {
 		}
 
 		List<OrderLine> orderLines = new ArrayList<OrderLine>();
-		System.out.println("Populating Orders Lines for warehouse " + warehouseId + ", district " + districtId + " and order " +
-				orderId);
 		for (int orderLineId = 0; orderLineId < o_ol_cnt; orderLineId++) {
 
 			double amount;
@@ -329,9 +272,6 @@ public class TpccPopulation {
 			System.err.println("Trying to populate New Order with a negative warehouse or district ID. skipping...");
 			return;
 		}
-
-		System.out.println("Populating New Order for warehouse " + warehouseId + ", district " + districtId + " and order " +
-				orderId);
 
 		List<NewOrder> newOrders = new ArrayList<NewOrder>();
 		newOrders.add(createNewOrder(orderId, districtId, warehouseId));
@@ -364,40 +304,8 @@ public class TpccPopulation {
 				"; committed=" + Utils.memString(u2.getCommitted()));
 	}
 
-	protected void logStockPopulation(int warehouseID, long initID, long finishID) {
-		System.err.println("Populating Stock for Warehouse " + warehouseID + ", Items from " + initID + " to " + finishID);
-	}
-
-	protected void logOrderPopulation(int warehouseID, int districtID, long initID, long finishID) {
-		System.err.println("Populating Order for Warehouse " + warehouseID + " and District " + districtID +
-				" , Orders from " + initID + " to " + finishID);
-	}
-
-	protected void logCustomerPopulation(int warehouseID, int districtID, long initID, long finishID) {
-		System.err.println("Populating Customer for Warehouse " + warehouseID + " and District " + districtID +
-				" , Customer from " + initID + " to " + finishID);
-	}
-
-	protected void logItemsPopulation(long initID, long finishID) {
-		System.err.println("Populate Items from " + initID + " to " + finishID);
-	}
-
-	protected void logDistrictPopulation(int warehouse, long initId, long finishID) {
-		System.err.println("Populate Districts for Warehouse " + warehouse + ". Districts from " + initId + " to " + finishID);
-	}
-
-	private void logErrorWhilePut(Object object, Throwable throwable) {
-		System.err.println("Error while trying to perform a put operation. Object is " + object +
-				". Error is " + throwable.getLocalizedMessage() + ". Retrying...");
-	}
-
-	private void logErrorWhileGet(Object object, Throwable throwable) {
-		System.err.println("Error while trying to perform a Get operation. Object is " + object +
-				". Error is " + throwable.getLocalizedMessage() + ". Retrying...");
-	}
-
 	protected final Warehouse createWarehouse(int warehouseId) {
-		return new Warehouse(wrapper, warehouseId,
+		return new Warehouse(warehouseId,
 				tpccTools.get().aleaChainec(6, 10),
 				tpccTools.get().aleaChainec(10, 20),
 				tpccTools.get().aleaChainec(10, 20),
@@ -437,7 +345,7 @@ public class TpccPopulation {
 	}
 
 	protected final District createDistrict(int districtId, int warehouseId) {
-		return new District(wrapper, warehouseId,
+		return new District(warehouseId,
 				districtId,
 				tpccTools.get().aleaChainec(6, 10),
 				tpccTools.get().aleaChainec(10, 20),
@@ -451,7 +359,7 @@ public class TpccPopulation {
 	}
 
 	protected final Customer createCustomer(int warehouseId, long districtId, long customerId, String customerLastName) {
-		return new Customer(wrapper, warehouseId,
+		return new Customer(warehouseId,
 				districtId,
 				customerId,
 				tpccTools.get().aleaChainec(8, 16),

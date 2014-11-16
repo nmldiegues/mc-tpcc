@@ -2,8 +2,6 @@ package pt.inesc.gsd.tpcc.domain;
 
 import java.util.Date;
 
-import org.radargun.CacheWrapper;
-
 public class OrderLine {
 
    private long ol_o_id;

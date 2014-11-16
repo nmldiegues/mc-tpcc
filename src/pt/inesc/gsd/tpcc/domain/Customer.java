@@ -6,8 +6,6 @@ import java.util.List;
 
 import jvstm.VBox;
 
-import org.radargun.CacheWrapper;
-
 public class Customer {
 
    /* district id */
@@ -61,7 +59,7 @@ public class Customer {
 
    }
 
-   public Customer(CacheWrapper wrapper, long c_w_id, long c_d_id, long c_id, String c_first, String c_middle, String c_last, String c_street1, String c_street2, String c_city, String c_state, String c_zip, String c_phone, Date c_since, String c_credit, double c_credit_lim, double c_discount, double c_balance, double c_ytd_payment, int c_payment_cnt, int c_delivery_cnt, String c_data) {
+   public Customer(long c_w_id, long c_d_id, long c_id, String c_first, String c_middle, String c_last, String c_street1, String c_street2, String c_city, String c_state, String c_zip, String c_phone, Date c_since, String c_credit, double c_credit_lim, double c_discount, double c_balance, double c_ytd_payment, int c_payment_cnt, int c_delivery_cnt, String c_data) {
       this.c_w_id = c_w_id;
       this.c_d_id = c_d_id;
       this.c_id = c_id;

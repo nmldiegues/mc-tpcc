@@ -3,8 +3,6 @@ package pt.inesc.gsd.tpcc.transaction;
 import java.util.Iterator;
 import java.util.List;
 
-import org.radargun.CacheWrapper;
-
 import pt.inesc.gsd.tpcc.TpccTerminal;
 import pt.inesc.gsd.tpcc.TpccTools;
 import pt.inesc.gsd.tpcc.domain.Company;
@@ -42,19 +40,18 @@ public class OrderStatusTransaction implements TpccTransaction {
          // clause 2.6.1.2 (dot 1)
          this.customerByName = true;
          this.customerLastName = lastName((int) tpccTools.nonUniformRandom(TpccTools.C_C_LAST, TpccTools.A_C_LAST, 0, TpccTools.MAX_C_LAST));
-         this.customerID = -1;
       } else {
          // clause 2.6.1.2 (dot 2)
          customerByName = false;
-         customerID = tpccTools.nonUniformRandom(TpccTools.C_C_ID, TpccTools.A_C_ID, 1, TpccTools.NB_MAX_CUSTOMER);
          this.customerLastName = null;
       }
+      customerID = tpccTools.nonUniformRandom(TpccTools.C_C_ID, TpccTools.A_C_ID, 1, TpccTools.NB_MAX_CUSTOMER);
 
    }
 
    @Override
-   public void executeTransaction(CacheWrapper cacheWrapper) throws Throwable {
-      orderStatusTransaction(cacheWrapper);
+   public void executeTransaction() throws Throwable {
+      orderStatusTransaction();
    }
 
    @Override
@@ -66,7 +63,7 @@ public class OrderStatusTransaction implements TpccTransaction {
       return TpccTerminal.nameTokens[(num / 100) % TpccTerminal.nameTokens.length] + TpccTerminal.nameTokens[(num / 10) % TpccTerminal.nameTokens.length] + TpccTerminal.nameTokens[num % TpccTerminal.nameTokens.length];
    }
 
-   private void orderStatusTransaction(CacheWrapper cacheWrapper) throws Throwable {
+   private void orderStatusTransaction() throws Throwable {
       long nameCnt;
 
       Customer c = null;
@@ -75,14 +72,18 @@ public class OrderStatusTransaction implements TpccTransaction {
     	  District district = warehouse.districts.get().get((int)districtID - 1);
     	  List<Customer> cList = district.customersByName.get().get(customerLastName);
     	  
-         nameCnt = cList.size();
+    	  if (cList != null) {
+    		  nameCnt = cList.size();
 
-         if (nameCnt % 2 == 1) nameCnt++;
-         Iterator<Customer> itr = cList.iterator();
+    		  if (nameCnt % 2 == 1) nameCnt++;
+    		  Iterator<Customer> itr = cList.iterator();
 
-         for (int i = 1; i <= nameCnt / 2; i++) {
-            c = itr.next();
-         }
+    		  for (int i = 1; i <= nameCnt / 2; i++) {
+    			  c = itr.next();
+    		  }
+    	  } else {
+    		  c = district.customers.get().get((int)customerID - 1);
+    	  }
 
       } else {
          // clause 2.6.2.2 (dot 3, Case 1)

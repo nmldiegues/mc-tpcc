@@ -16,17 +16,14 @@ public class TpccTerminal {
 
    private double orderStatusWeight;
 
-   private final int indexNode;
-
    private int localWarehouseID;
 
    private final TpccTools tpccTools;
 
 
-   public TpccTerminal(double paymentWeight, double orderStatusWeight, int indexNode, int localWarehouseID) {
+   public TpccTerminal(double paymentWeight, double orderStatusWeight, int localWarehouseID) {
       this.paymentWeight = paymentWeight;
       this.orderStatusWeight = orderStatusWeight;
-      this.indexNode = indexNode;
       this.localWarehouseID = localWarehouseID;
       tpccTools = TpccTools.newInstance();
    }
@@ -34,7 +31,7 @@ public class TpccTerminal {
    public synchronized final TpccTransaction createTransaction(int type) {
       switch (type) {
          case PAYMENT:
-            return new PaymentTransaction(tpccTools, indexNode, localWarehouseID);
+            return new PaymentTransaction(tpccTools, localWarehouseID);
          case ORDER_STATUS:
             return new OrderStatusTransaction(tpccTools, localWarehouseID);
          case NEW_ORDER:
@@ -46,28 +43,14 @@ public class TpccTerminal {
       }
    }
 
-   public synchronized final TpccTransaction choiceTransaction(boolean isPassiveReplication, boolean isTheMaster) {
-      return createTransaction(chooseTransactionType(isPassiveReplication, isTheMaster));
+   public synchronized final TpccTransaction choiceTransaction() {
+      return createTransaction(chooseTransactionType());
    }
 
-   public synchronized final int chooseTransactionType(boolean isPassiveReplication, boolean isTheMaster) {
+   public synchronized final int chooseTransactionType() {
       double transactionType = Math.min(tpccTools.doubleRandomNumber(1, 100), 100.0);
 
       double realPaymentWeight = paymentWeight, realOrderStatusWeight = orderStatusWeight;
-
-      if (isPassiveReplication) {
-         if (isTheMaster) {
-            realPaymentWeight = paymentWeight + (orderStatusWeight / 2);
-            realOrderStatusWeight = 0;
-         } else {
-            realPaymentWeight = 0;
-            realOrderStatusWeight = 100;
-         }
-      }
-
-      System.err.println("Choose transaction " + transactionType +
-                         ". Payment Weight=" + realPaymentWeight + "(" + paymentWeight + ")" +
-                         ", Order Status Weight=" + realOrderStatusWeight + "(" + orderStatusWeight + ")");
 
       if (transactionType <= realPaymentWeight) {
          return PAYMENT;

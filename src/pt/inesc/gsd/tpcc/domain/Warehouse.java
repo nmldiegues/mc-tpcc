@@ -4,8 +4,6 @@ import java.util.List;
 
 import jvstm.VBox;
 
-import org.radargun.CacheWrapper;
-
 public class Warehouse {
 
    private long w_id;
@@ -34,7 +32,7 @@ public class Warehouse {
 
    }
 
-   public Warehouse(CacheWrapper wrapper, long w_id, String w_name, String w_street1, String w_street2, String w_city, String w_state, String w_zip, double w_tax, double w_ytd) {
+   public Warehouse(long w_id, String w_name, String w_street1, String w_street2, String w_city, String w_state, String w_zip, double w_tax, double w_ytd) {
       this.w_id = w_id;
       this.w_name = w_name;
       this.w_street1 = w_street1;

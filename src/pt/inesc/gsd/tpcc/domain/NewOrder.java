@@ -1,7 +1,5 @@
 package pt.inesc.gsd.tpcc.domain;
 
-import org.radargun.CacheWrapper;
-
 public class NewOrder  {
 
    private long no_o_id;

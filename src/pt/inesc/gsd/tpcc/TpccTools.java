@@ -4,8 +4,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Random;
 
-import org.radargun.CacheWrapper;
-
 public final class TpccTools {
 
    public static final double WAREHOUSE_YTD = 300000.00;
