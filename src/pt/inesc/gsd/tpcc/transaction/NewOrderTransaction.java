@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.List;
 
 import jvstm.VBox;
-
-import pt.inesc.gsd.tpcc.ElementNotFoundException;
 import pt.inesc.gsd.tpcc.TpccTools;
 import pt.inesc.gsd.tpcc.domain.Company;
 import pt.inesc.gsd.tpcc.domain.Customer;

@@ -4,7 +4,6 @@ import pt.inesc.gsd.tpcc.transaction.NewOrderTransaction;
 import pt.inesc.gsd.tpcc.transaction.OrderStatusTransaction;
 import pt.inesc.gsd.tpcc.transaction.PaymentTransaction;
 import pt.inesc.gsd.tpcc.transaction.TpccTransaction;
-import sun.rmi.runtime.Log;
 
 public class TpccTerminal {
 

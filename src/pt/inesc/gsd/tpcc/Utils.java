@@ -15,8 +15,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.MBeanAttributeInfo;
 
-import sun.rmi.runtime.Log;
-
 /**
  * @author Mircea.Markus@jboss.com
  */

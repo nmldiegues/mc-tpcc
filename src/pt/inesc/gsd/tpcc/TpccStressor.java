@@ -263,10 +263,6 @@ public class TpccStressor {
             } catch (Throwable e) {
             	tx.abort();
                successful = false;
-               if (e instanceof ElementNotFoundException) {
-            	   notfound = true;
-                  this.appFailures++;
-               }
             }
 
             //here we try to finalize the transaction
