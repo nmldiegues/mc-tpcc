@@ -1,6 +1,5 @@
 package pt.inesc.gsd.tpcc;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -54,6 +53,7 @@ public class TpccStressor {
       } catch (Exception e) {
          throw new RuntimeException(e);
       }
+      finishBenchmarkTimer.cancel();
       return processResults(stressors);
    }
 
@@ -114,53 +114,11 @@ public class TpccStressor {
       int failures = 0;
       int rdFailures = 0;
       int wrFailures = 0;
-      int nrWrFailuresOnCommit = 0;
       int newOrderFailures = 0;
       int paymentFailures = 0;
       int appFailures = 0;
 
-      long readsDurations = 0L;
-      long writesDurations = 0L;
-      long newOrderDurations = 0L;
-      long paymentDurations = 0L;
-      long successful_writesDurations = 0L;
-      long successful_readsDurations = 0L;
-      long writeServiceTimes = 0L;
-      long readServiceTimes = 0L;
-      long newOrderServiceTimes = 0L;
-      long paymentServiceTimes = 0L;
-
-      long successful_commitWriteDurations = 0L;
-      long aborted_commitWriteDurations = 0L;
-      long commitWriteDurations = 0L;
-
-      long writeInQueueTimes = 0L;
-      long readInQueueTimes = 0L;
-      long newOrderInQueueTimes = 0L;
-      long paymentInQueueTimes = 0L;
-      long numWritesDequeued = 0L;
-      long numReadsDequeued = 0L;
-      long numNewOrderDequeued = 0L;
-      long numPaymentDequeued = 0L;
-
       for (Stressor stressor : stressors) {
-         //duration += stressor.totalDuration(); //in nanosec
-         //readsDurations += stressor.readDuration; //in nanosec
-         //writesDurations += stressor.writeDuration; //in nanosec
-         newOrderDurations += stressor.newOrderDuration; //in nanosec
-         paymentDurations += stressor.paymentDuration; //in nanosec
-         successful_writesDurations += stressor.successful_writeDuration; //in nanosec
-         successful_readsDurations += stressor.successful_readDuration; //in nanosec
-
-         successful_commitWriteDurations += stressor.successful_commitWriteDuration; //in nanosec
-         aborted_commitWriteDurations += stressor.aborted_commitWriteDuration; //in nanosec
-         commitWriteDurations += stressor.commitWriteDuration; //in nanosec;
-
-         writeServiceTimes += stressor.writeServiceTime;
-         readServiceTimes += stressor.readServiceTime;
-         newOrderServiceTimes += stressor.newOrderServiceTime;
-         paymentServiceTimes += stressor.paymentServiceTime;
-
          reads += stressor.reads;
          writes += stressor.writes;
          newOrderTransactions += stressor.newOrder;
@@ -169,40 +127,10 @@ public class TpccStressor {
          failures += stressor.nrFailures;
          rdFailures += stressor.nrRdFailures;
          wrFailures += stressor.nrWrFailures;
-         nrWrFailuresOnCommit += stressor.nrWrFailuresOnCommit;
          newOrderFailures += stressor.nrNewOrderFailures;
          paymentFailures += stressor.nrPaymentFailures;
          appFailures += stressor.appFailures;
-
-         writeInQueueTimes += stressor.writeInQueueTime;
-         readInQueueTimes += stressor.readInQueueTime;
-         newOrderInQueueTimes += stressor.newOrderInQueueTime;
-         paymentInQueueTimes += stressor.paymentInQueueTime;
-         numWritesDequeued += stressor.numWriteDequeued;
-         numReadsDequeued += stressor.numReadDequeued;
-         numNewOrderDequeued += stressor.numNewOrderDequeued;
-         numPaymentDequeued += stressor.numPaymentDequeued;
       }
-
-      //duration = duration / 1000000; // nanosec to millisec
-      //readsDurations = readsDurations / 1000; //nanosec to microsec
-      //writesDurations = writesDurations / 1000; //nanosec to microsec
-      //newOrderDurations = newOrderDurations / 1000; //nanosec to microsec
-      //paymentDurations = paymentDurations / 1000;//nanosec to microsec
-      successful_readsDurations = successful_readsDurations / 1000; //nanosec to microsec
-      successful_writesDurations = successful_writesDurations / 1000; //nanosec to microsec
-      successful_commitWriteDurations = successful_commitWriteDurations / 1000; //nanosec to microsec
-      aborted_commitWriteDurations = aborted_commitWriteDurations / 1000; //nanosec to microsec
-      commitWriteDurations = commitWriteDurations / 1000; //nanosec to microsec
-      writeServiceTimes = writeServiceTimes / 1000; //nanosec to microsec
-      readServiceTimes = readServiceTimes / 1000; //nanosec to microsec
-      newOrderServiceTimes = newOrderServiceTimes / 1000; //nanosec to microsec
-      paymentServiceTimes = paymentServiceTimes / 1000; //nanosec to microsec
-
-      writeInQueueTimes = writeInQueueTimes / 1000;//nanosec to microsec
-      readInQueueTimes = readInQueueTimes / 1000;//nanosec to microsec
-      newOrderInQueueTimes = newOrderInQueueTimes / 1000;//nanosec to microsec
-      paymentInQueueTimes = paymentInQueueTimes / 1000;//nanosec to microsec
 
       Map<String, String> results = new LinkedHashMap<String, String>();
 
@@ -255,80 +183,6 @@ public class TpccStressor {
       results.put("PAYMENT_FAILURES", str(paymentFailures));
       results.put("READ_FAILURES", str(rdFailures));
 
-      if ((reads + writes) != 0)
-         results.put("AVG_SUCCESSFUL_DURATION (usec)", str((successful_writesDurations + successful_readsDurations) / (reads + writes)));
-      else
-         results.put("AVG_SUCCESSFUL_DURATION (usec)", str(0));
-
-
-      if (reads != 0)
-         results.put("AVG_SUCCESSFUL_READ_DURATION (usec)", str(successful_readsDurations / reads));
-      else
-         results.put("AVG_SUCCESSFUL_READ_DURATION (usec)", str(0));
-
-
-      if (writes != 0)
-         results.put("AVG_SUCCESSFUL_WRITE_DURATION (usec)", str(successful_writesDurations / writes));
-      else
-         results.put("AVG_SUCCESSFUL_WRITE_DURATION (usec)", str(0));
-
-
-      if (writes != 0) {
-         results.put("AVG_SUCCESSFUL_COMMIT_WRITE_DURATION (usec)", str((successful_commitWriteDurations / writes)));
-      } else {
-         results.put("AVG_SUCCESSFUL_COMMIT_WRITE_DURATION (usec)", str(0));
-      }
-
-      if (nrWrFailuresOnCommit != 0) {
-         results.put("AVG_ABORTED_COMMIT_WRITE_DURATION (usec)", str((aborted_commitWriteDurations / nrWrFailuresOnCommit)));
-      } else {
-         results.put("AVG_ABORTED_COMMIT_WRITE_DURATION (usec)", str(0));
-      }
-
-
-      if (writes + nrWrFailuresOnCommit != 0) {
-         results.put("AVG_COMMIT_WRITE_DURATION (usec)", str((commitWriteDurations / (writes + nrWrFailuresOnCommit))));
-      } else {
-         results.put("AVG_COMMIT_WRITE_DURATION (usec)", str(0));
-      }
-
-      if ((reads + rdFailures) != 0)
-         results.put("AVG_RD_SERVICE_TIME (usec)", str(readServiceTimes / (reads + rdFailures)));
-      else
-         results.put("AVG_RD_SERVICE_TIME (usec)", str(0));
-
-      if ((writes + wrFailures) != 0)
-         results.put("AVG_WR_SERVICE_TIME (usec)", str(writeServiceTimes / (writes + wrFailures)));
-      else
-         results.put("AVG_WR_SERVICE_TIME (usec)", str(0));
-
-      if ((newOrderTransactions + newOrderFailures) != 0)
-         results.put("AVG_NEW_ORDER_SERVICE_TIME (usec)", str(newOrderServiceTimes / (newOrderTransactions + newOrderFailures)));
-      else
-         results.put("AVG_NEW_ORDER_SERVICE_TIME (usec)", str(0));
-
-      if ((paymentTransactions + paymentFailures) != 0)
-         results.put("AVG_PAYMENT_SERVICE_TIME (usec)", str(paymentServiceTimes / (paymentTransactions + paymentFailures)));
-      else
-         results.put("AVG_PAYMENT_SERVICE_TIME (usec)", str(0));
-
-      if (numWritesDequeued != 0)
-         results.put("AVG_WR_INQUEUE_TIME (usec)", str(writeInQueueTimes / numWritesDequeued));
-      else
-         results.put("AVG_WR_INQUEUE_TIME (usec)", str(0));
-      if (numReadsDequeued != 0)
-         results.put("AVG_RD_INQUEUE_TIME (usec)", str(readInQueueTimes / numReadsDequeued));
-      else
-         results.put("AVG_RD_INQUEUE_TIME (usec)", str(0));
-      if (numNewOrderDequeued != 0)
-         results.put("AVG_NEW_ORDER_INQUEUE_TIME (usec)", str(newOrderInQueueTimes / numNewOrderDequeued));
-      else
-         results.put("AVG_NEW_ORDER_INQUEUE_TIME (usec)", str(0));
-      if (numPaymentDequeued != 0)
-         results.put("AVG_PAYMENT_INQUEUE_TIME (usec)", str(paymentInQueueTimes / numPaymentDequeued));
-      else
-         results.put("AVG_PAYMENT_INQUEUE_TIME (usec)", str(0));
-
       System.out.println("Finished generating report. Nr of failed operations on this node is: " + failures +
                      ". Test duration is: " + Utils.getMillisDurationString(System.currentTimeMillis() - startTime));
       return results;
@@ -352,49 +206,20 @@ public class TpccStressor {
    }
 
    private class Stressor extends Thread {
-      private int threadIndex;
-      private double arrivalRate;
 
       private final TpccTerminal terminal;
 
       private int nrFailures = 0;
       private int nrWrFailures = 0;
-      private int nrWrFailuresOnCommit = 0;
       private int nrRdFailures = 0;
       private int nrNewOrderFailures = 0;
       private int nrPaymentFailures = 0;
       private int appFailures = 0;
 
-      private long readDuration = 0L;
-      private long writeDuration = 0L;
-      private long newOrderDuration = 0L;
-      private long paymentDuration = 0L;
-      private long successful_commitWriteDuration = 0L;
-      private long aborted_commitWriteDuration = 0L;
-      private long commitWriteDuration = 0L;
-
-      private long writeServiceTime = 0L;
-      private long newOrderServiceTime = 0L;
-      private long paymentServiceTime = 0L;
-      private long readServiceTime = 0L;
-
-      private long successful_writeDuration = 0L;
-      private long successful_readDuration = 0L;
-
       private long reads = 0L;
       private long writes = 0L;
       private long payment = 0L;
       private long newOrder = 0L;
-
-      private long numWriteDequeued = 0L;
-      private long numReadDequeued = 0L;
-      private long numNewOrderDequeued = 0L;
-      private long numPaymentDequeued = 0L;
-
-      private long writeInQueueTime = 0L;
-      private long readInQueueTime = 0L;
-      private long newOrderInQueueTime = 0L;
-      private long paymentInQueueTime = 0L;
 
       private boolean running = true;
       private boolean active = true;
@@ -402,8 +227,6 @@ public class TpccStressor {
       public Stressor(int localWarehouseID, int threadIndex, double arrivalRate,
                       double paymentWeight, double orderStatusWeight) {
          super("Stressor-" + threadIndex);
-         this.threadIndex = threadIndex;
-         this.arrivalRate = arrivalRate;
          this.terminal = new TpccTerminal(paymentWeight, orderStatusWeight, localWarehouseID);
       }
 
@@ -417,10 +240,6 @@ public class TpccStressor {
             System.err.println("Interrupted while waiting for starting in " + getName());
          }
 
-         long end;
-
-         long commit_start = 0L;
-
          TpccTransaction transaction;
 
          boolean isReadOnly;
@@ -432,14 +251,11 @@ public class TpccStressor {
              notfound = false;
             successful = true;
 
-            long start = System.nanoTime();
             if (transaction == null) {
         	    transaction = terminal.choiceTransaction();
             }
             isReadOnly = transaction.isReadOnly();
 
-            long startService = System.nanoTime();
-         
             Transaction tx = Transaction.begin(isReadOnly);
 
             try {
@@ -455,14 +271,7 @@ public class TpccStressor {
 
             //here we try to finalize the transaction
             //if any read/write has failed we abort
-            boolean measureCommitTime = false;
             try {
-               /* In our tests we are interested in the commit time spent for write txs*/
-               if (successful && !isReadOnly) {
-                  commit_start = System.nanoTime();
-                  measureCommitTime = true;
-               }
-
                if (successful) {
             	   tx.commit();
                }
@@ -489,7 +298,6 @@ public class TpccStressor {
 
                if (!isReadOnly) {
                   nrWrFailures++;
-                  nrWrFailuresOnCommit++;
                   if (transaction instanceof NewOrderTransaction) {
                      nrNewOrderFailures++;
                   } else if (transaction instanceof PaymentTransaction) {
@@ -501,24 +309,8 @@ public class TpccStressor {
                successful = false;
             }
 
-            end = System.nanoTime();
-
-            if (this.arrivalRate == 0.0) {  //Closed system
-               start = startService;
-            }
-
             if (!isReadOnly) {
-               writeDuration += end - start;
-               writeServiceTime += end - startService;
-               if (transaction instanceof NewOrderTransaction) {
-                  newOrderDuration += end - start;
-                  newOrderServiceTime += end - startService;
-               } else if (transaction instanceof PaymentTransaction) {
-                  paymentDuration += end - start;
-                  paymentServiceTime += end - startService;
-               }
                if (successful) {
-                  successful_writeDuration += end - startService;
                   writes++;
                   if (transaction instanceof PaymentTransaction) {
                      payment++;
@@ -527,21 +319,9 @@ public class TpccStressor {
                   }
                }
             } else {
-               readDuration += end - start;
-               readServiceTime += end - startService;
                if (successful) {
                   reads++;
-                  successful_readDuration += end - startService;
                }
-            }
-
-            if (measureCommitTime) {
-               if (successful) {
-                  this.successful_commitWriteDuration += end - commit_start;
-               } else {
-                  this.aborted_commitWriteDuration += end - commit_start;
-               }
-               this.commitWriteDuration += end - commit_start;
             }
 
             if (successful || notfound) {
@@ -556,23 +336,10 @@ public class TpccStressor {
          return running;
       }
 
-      public final synchronized void inactive() {
-         active = false;
-      }
-
-      public final synchronized void active() {
-         active = true;
-         notifyAll();
-      }
-
       public final synchronized void finish() {
          active = true;
          running = false;
          notifyAll();
-      }
-
-      public final synchronized boolean isActive() {
-         return active;
       }
 
       private synchronized void blockIfInactive() {
