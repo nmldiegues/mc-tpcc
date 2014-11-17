@@ -151,9 +151,7 @@ public class PaymentTransaction implements TpccTransaction {
       h_data = w_name + "    " + d_name;
 
       History h = new History(c.getC_id(), customerDistrictID, customerWarehouseID, districtID, terminalWarehouseID, new Date(), paymentAmount, h_data);
-      List<History> histories = new ArrayList<History>(c.histories.get());
-      histories.add(h);
-      c.histories.put(histories);
+      c.histories.put(c.histories.get().cons(h));
    }
 
 }

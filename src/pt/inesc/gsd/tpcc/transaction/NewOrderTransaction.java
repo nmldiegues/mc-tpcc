@@ -102,9 +102,7 @@ public class NewOrderTransaction implements TpccTransaction {
       NewOrder no = new NewOrder(o_id, districtID, warehouseID);
       newOrders.add(no);
       o.newOrders = new VBox<List<NewOrder>>(newOrders);
-      List<Order> orders = new ArrayList<Order>(c.orders.get());
-      orders.add(o);
-      c.orders.put(orders);
+      c.orders.put(c.orders.get().cons(o));
 
       List<OrderLine> orderLines = new ArrayList<OrderLine>();
 

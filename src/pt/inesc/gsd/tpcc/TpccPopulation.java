@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import jvstm.VBox;
+import jvstm.util.Cons;
 
 import pt.inesc.gsd.tpcc.domain.Company;
 import pt.inesc.gsd.tpcc.domain.Customer;
@@ -206,9 +207,7 @@ public class TpccPopulation {
 			return;
 		}
 
-		List<History> histories = new ArrayList<History>();
-		histories.add(createHistory(customerId, districtId, warehouseId));
-		customer.histories = new VBox<List<History>>(histories);
+		customer.histories = new VBox(Cons.empty().cons(createHistory(customerId, districtId, warehouseId)));
 	}
 
 
@@ -235,9 +234,7 @@ public class TpccPopulation {
 			}
 			
 			Customer customer = district.customers.get().get((int)order.getO_c_id() - 1);
-			List<Order> orders = new ArrayList<Order>(customer.orders.get());
-			orders.add(order);
-			customer.orders.put(orders);
+			customer.orders.put(customer.orders.get().cons(order));
 		}
 	}
 

@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import jvstm.VBox;
+import jvstm.util.Cons;
 
 public class Customer {
 
@@ -52,8 +53,9 @@ public class Customer {
 
    private VBox<String> c_data;
 
-   public VBox<List<Order>> orders = new VBox<List<Order>>(new ArrayList<Order>());
-   public VBox<List<History>> histories;
+   public VBox<Cons<Order>> orders = new VBox(Cons.empty());
+   public VBox<Cons<History>> histories;
+   // public VBox<List<History>> histories;
    
    public Customer() {
 

@@ -93,8 +93,7 @@ public class OrderStatusTransaction implements TpccTransaction {
       }
 
       // clause 2.6.2.2 (dot 4)
-      List<Order> orders = c.orders.get();
-      Order o = orders.get(orders.size() - 1);
+      Order o = c.orders.get().first();
 
       // clause 2.6.2.2 (dot 5)
       o.orderLines.get();
