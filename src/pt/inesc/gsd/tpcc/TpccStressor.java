@@ -626,47 +626,6 @@ public class TpccStressor {
       notifyAll();
    }
 
-   public final synchronized void setNumberOfRunningThreads(int numOfThreads) {
-      if (numOfThreads < 1 || !running) {
-         return;
-      }
-      Iterator<Stressor> iterator = stressors.iterator();
-      while (numOfThreads > 0 && iterator.hasNext()) {
-         Stressor stressor = iterator.next();
-         if (!stressor.isActive()) {
-            stressor.active();
-         }
-         numOfThreads--;
-      }
-
-      if (numOfThreads > 0) {
-         int threadIdx = stressors.size();
-         while (numOfThreads-- > 0) {
-            Stressor stressor = createStressor(threadIdx++);
-            stressor.start();
-            stressors.add(stressor);
-         }
-      } else {
-         while (iterator.hasNext()) {
-            iterator.next().inactive();
-         }
-      }
-   }
-
-   public final synchronized int getNumberOfThreads() {
-      return stressors.size();
-   }
-
-   public final synchronized int getNumberOfActiveThreads() {
-      int count = 0;
-      for (Stressor stressor : stressors) {
-         if (stressor.isActive()) {
-            count++;
-         }
-      }
-      return count;
-   }
-
    private Stressor createStressor(int threadIndex) {
       int localWarehouse = getWarehouseForThread(threadIndex);
       return new Stressor(localWarehouse, threadIndex, arrivalRate, paymentWeight,orderStatusWeight);
