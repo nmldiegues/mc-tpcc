@@ -306,7 +306,7 @@ public class NewOrderTransaction implements TpccTransaction {
 	  int m = 1;
 	  List<ParallelTask<Void>> workers = new ArrayList<ParallelTask<Void>>(parallelNestedThreads);
 	  for (int i = 0; i < parallelNestedThreads; i++) {
-	      workers.add(new ParallelNewOrder(m, m + partition));
+	      workers.add(new ParallelNewOrder(m, m + partition - 1));
 	      m += partition;
 	  }
 	  int k = 0;
