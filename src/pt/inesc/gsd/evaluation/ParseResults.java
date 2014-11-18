@@ -39,7 +39,7 @@ public class ParseResults {
 		for (int threads : POSSIBLE_THREADS) {
 		    Result result = new Result();
 		    for (int a = 0; a < ATTEMPTS; a++) {
-			List<String> content = getFileContent(args[0] + "/8-" + benchmark + "-" + threads + "-" + (a+1) + ".data");
+			List<String> content = getFileContent(args[0] + "/1-" + benchmark + "-" + threads + "-" + (a+1) + ".data");
 			result.commitsPerSec += getCommitsPerSec(benchmark, content);
 			result.abortsPerSec += getAbortsPerSec(benchmark, content);
 		    }
@@ -65,7 +65,7 @@ public class ParseResults {
 		    throughput += " " + roundTwoDecimals(commitsPerSec) + " " + roundTwoDecimals(abortsPerSec);
 		}
 	    }
-	    writeToFile(args[0] + "/results/" + benchmark + "-throughput+aborts.output", throughput);
+	    writeToFile(args[0] + "/results/warehouses-1-" + benchmark + "-throughput+aborts.output", throughput);
 	}
 
     }

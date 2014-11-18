@@ -2,7 +2,7 @@ package pt.inesc.gsd.tpcc.transaction;
 
 public interface TpccTransaction {
 
-   void executeTransaction() throws Throwable;
+   void executeTransaction(int parallelNestedSiblings) throws Throwable;
 
    boolean isReadOnly();
 }

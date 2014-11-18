@@ -50,7 +50,7 @@ public class OrderStatusTransaction implements TpccTransaction {
    }
 
    @Override
-   public void executeTransaction() throws Throwable {
+   public void executeTransaction(int parallelNestedThreads) throws Throwable {
       orderStatusTransaction();
    }
 

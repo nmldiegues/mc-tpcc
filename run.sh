@@ -1,21 +1,25 @@
 #!/bin/sh
 
-workloads[1]="0 100"
-workloads[2]="5 90"
-workloads[3]="15 70"
-workloads[4]="10 90"
-workloads[5]="0 90"
-workloads[6]="30 70"
-workloads[7]="0 70"
+workloads[1]="0 95"
+workloads[2]="0 90"
+workloads[3]="0 80"
+workloads[4]="0 50"
+workloads[5]="0 0"
 
-workloadsStr[1]="n0-p0-o100"
-workloadsStr[2]="n5-p5-o90"
-workloadsStr[3]="n15-p15-o70"
-workloadsStr[4]="n0-p10-o90"
-workloadsStr[5]="n10-p0-o90"
-workloadsStr[6]="n0-p30-o70"
-workloadsStr[7]="n30-p0-o70"
+workloadsStr[1]="n5-p0-o95"
+workloadsStr[2]="n10-p0-o90"
+workloadsStr[3]="n20-p0-o80"
+workloadsStr[4]="n50-p0-o50"
+workloadsStr[5]="n100-p0-o0"
 
+topTxs[1]="1 0"
+topTxs[2]="2 0"
+topTxs[4]="4 0"
+topTxs[8]="8 0"
+topTxs[16]="8 2"
+topTxs[24]="8 3"
+topTxs[32]="8 4"
+topTxs[48]="8 6"
 
 wait_until_finish() {
     pid3=$1
@@ -37,20 +41,28 @@ mkdir auto-results
 ant clean
 ant compile
 cd build/classes
-for warehouses in 1 8 32
+for warehouses in 1 #8
 do
-	for workload in {1..7}
+	for workload in {1..5}
 	do
-		for t in 1 2 4 8 16 24 32 48
+		for t in 16 24 32 48 #1 2 4 8 16 24 32 48
 		do
-			for a in {1..3}
+			for a in 1 #{1..3}
 			do
-				echo "running: warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a"
-				java -Xms16G -Xmx64G -cp ../../libs/jvstm-2.3.jar:. pt.inesc.gsd.tpcc.Tpcc $warehouses ${workloads[$workload]} $t 15 >> ../../auto-results/$warehouses-${workloadsStr[$workload]}-$t-$a.data &
+				echo "running: !TopLevel! warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a"
+				java -Xms16G -Xmx64G -cp ../../libs/jvstm-2.3.jar:. pt.inesc.gsd.tpcc.Tpcc $warehouses ${workloads[$workload]} $t 0 15 >> ../../auto-results/$warehouses-tl-${workloadsStr[$workload]}-$t-$a.data &
 				pid=$!; wait_until_finish $pid; wait $pid; rc=$?
 				if [[ $rc != 0 ]] ; then
-		                    echo "Error within: running: warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a" >> ../../auto-results/error.out
+		                    echo "Error within: running: !TopLevel! warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a" >> ../../auto-results/error.out
                 		fi
+				
+                                echo "running: !ParNest! warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a"
+                                java -Xms16G -Xmx64G -cp ../../libs/jvstm-2.3.jar:. pt.inesc.gsd.tpcc.Tpcc $warehouses ${workloads[$workload]} ${topTxs[$t]} 15 >> ../../auto-results/$warehouses-pr-${workloadsStr[$workload]}-$t-$a.data &
+                                pid=$!; wait_until_finish $pid; wait $pid; rc=$?
+                                if [[ $rc != 0 ]] ; then
+                                    echo "Error within: running: !ParNest! warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a" >> ../../auto-results/error.out
+                                fi
+
 			done
 		done
 	done

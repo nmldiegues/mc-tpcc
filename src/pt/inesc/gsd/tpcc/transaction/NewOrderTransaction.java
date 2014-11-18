@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import jvstm.ParallelTask;
+import jvstm.Transaction;
 import jvstm.VBox;
 import pt.inesc.gsd.tpcc.TpccTools;
 import pt.inesc.gsd.tpcc.domain.Company;
@@ -23,6 +25,9 @@ public class NewOrderTransaction implements TpccTransaction {
    private final long customerID;
    private final int numItems;
    private int allLocal;
+   
+   private Warehouse warehouseShared;
+   private OrderLine[] sharedOrderLines;
 
    private final long[] itemIDs;
    private final long[] supplierWarehouseIDs;
@@ -67,16 +72,109 @@ public class NewOrderTransaction implements TpccTransaction {
    }
 
    @Override
-   public void executeTransaction() throws Throwable {
-      newOrderTransaction();
+   public void executeTransaction(int parallelNestedThreads) throws Throwable {
+      newOrderTransaction(parallelNestedThreads);
    }
 
    @Override
    public boolean isReadOnly() {
       return false;
    }
+   
+   public class ParallelNewOrder extends ParallelTask<Void> {
 
-   private void newOrderTransaction() throws Throwable {
+    @Override
+    public Void execute() throws Throwable {
+	long o_id = -1;
+	String ol_dist_info = null;
+	int s_remote_cnt_increment;
+	long s_quantity;
+	long ol_supply_w_id, ol_i_id, ol_quantity;
+	double ol_amount = 0;
+	// see clause 2.4.2.2 (dot 8)
+	for (int ol_number = 1; ol_number <= numItems; ol_number++) {
+	    ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
+	    ol_i_id = itemIDs[ol_number - 1];
+	    ol_quantity = orderQuantities[ol_number - 1];
+
+	    // clause 2.4.2.2 (dot 8.1)
+	    Item i = Company.items.get().get((int)ol_i_id - 1);
+
+	    i.getI_price();
+	    i.getI_name();
+	    // clause 2.4.2.2 (dot 8.2)
+
+	    Stock s = NewOrderTransaction.this.warehouseShared.stocks.get().get((int)ol_i_id - 1);
+
+	    s_quantity = s.getS_quantity();
+	    // clause 2.4.2.2 (dot 8.2)
+	    if (s_quantity - ol_quantity >= 10) {
+		s_quantity -= ol_quantity;
+	    } else {
+		s_quantity += -ol_quantity + 91;
+	    }
+
+	    if (ol_supply_w_id == warehouseID) {
+		s_remote_cnt_increment = 0;
+	    } else {
+		s_remote_cnt_increment = 1;
+	    }
+	    // clause 2.4.2.2 (dot 8.2)
+	    s.setS_quantity(s_quantity);
+	    s.setS_ytd(s.getS_ytd() + ol_quantity);
+	    s.setS_remote_cnt(s.getS_remote_cnt() + s_remote_cnt_increment);
+	    s.setS_order_cnt(s.getS_order_cnt() + 1);
+
+
+	    // clause 2.4.2.2 (dot 8.3)
+	    ol_amount = ol_quantity * i.getI_price();
+	    // clause 2.4.2.2 (dot 8.4)
+	    i.getI_data();
+	    s.getS_data();
+
+	    switch ((int) districtID) {
+	    case 1:
+		ol_dist_info = s.getS_dist_01();
+		break;
+	    case 2:
+		ol_dist_info = s.getS_dist_02();
+		break;
+	    case 3:
+		ol_dist_info = s.getS_dist_03();
+		break;
+	    case 4:
+		ol_dist_info = s.getS_dist_04();
+		break;
+	    case 5:
+		ol_dist_info = s.getS_dist_05();
+		break;
+	    case 6:
+		ol_dist_info = s.getS_dist_06();
+		break;
+	    case 7:
+		ol_dist_info = s.getS_dist_07();
+		break;
+	    case 8:
+		ol_dist_info = s.getS_dist_08();
+		break;
+	    case 9:
+		ol_dist_info = s.getS_dist_09();
+		break;
+	    case 10:
+		ol_dist_info = s.getS_dist_10();
+		break;
+	    }
+	    // clause 2.4.2.2 (dot 8.5)
+
+	    NewOrderTransaction.this.sharedOrderLines[ol_number - 1] = new OrderLine(o_id, districtID, warehouseID, ol_number, ol_i_id, ol_supply_w_id, null,
+		    ol_quantity, ol_amount, ol_dist_info);
+	}
+	return null;
+    }
+       
+   }
+
+   private void newOrderTransaction(int parallelNestedThreads) throws Throwable {
       long o_id = -1, s_quantity;
       String i_data, s_data;
 
@@ -88,12 +186,14 @@ public class NewOrderTransaction implements TpccTransaction {
       char[] brandGeneric = new char[numItems];
       long ol_supply_w_id, ol_i_id, ol_quantity;
       int s_remote_cnt_increment;
-      double ol_amount, total_amount = 0;
+      double ol_amount = 0;
 
       Warehouse w = Company.warehouses.get().get((int)warehouseID - 1);
       District d = w.districts.get().get((int)districtID - 1);
       Customer c = d.customers.get().get((int)customerID - 1);
-
+      this.warehouseShared = w;
+      this.sharedOrderLines = new OrderLine[numItems];
+      
       o_id = d.getD_next_o_id();
       d.setD_next_o_id(d.getD_next_o_id() + 1);
 
@@ -104,96 +204,106 @@ public class NewOrderTransaction implements TpccTransaction {
       o.newOrders = new VBox<List<NewOrder>>(newOrders);
       c.orders.put(c.orders.get().cons(o));
 
-      List<OrderLine> orderLines = new ArrayList<OrderLine>();
+      List<OrderLine> orderLines = new ArrayList<OrderLine>(numItems);
 
-      // see clause 2.4.2.2 (dot 8)
-      for (int ol_number = 1; ol_number <= numItems; ol_number++) {
-         ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
-         ol_i_id = itemIDs[ol_number - 1];
-         ol_quantity = orderQuantities[ol_number - 1];
+      if (parallelNestedThreads == 0) {
+	  // see clause 2.4.2.2 (dot 8)
+	  for (int ol_number = 1; ol_number <= numItems; ol_number++) {
+	      ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
+	      ol_i_id = itemIDs[ol_number - 1];
+	      ol_quantity = orderQuantities[ol_number - 1];
 
-         // clause 2.4.2.2 (dot 8.1)
-         Item i = Company.items.get().get((int)ol_i_id - 1);
+	      // clause 2.4.2.2 (dot 8.1)
+	      Item i = Company.items.get().get((int)ol_i_id - 1);
 
-         itemPrices[ol_number - 1] = i.getI_price();
-         itemNames[ol_number - 1] = i.getI_name();
-         // clause 2.4.2.2 (dot 8.2)
+	      itemPrices[ol_number - 1] = i.getI_price();
+	      itemNames[ol_number - 1] = i.getI_name();
+	      // clause 2.4.2.2 (dot 8.2)
 
-         Stock s = w.stocks.get().get((int)ol_i_id - 1);
+	      Stock s = w.stocks.get().get((int)ol_i_id - 1);
 
-         s_quantity = s.getS_quantity();
-         stockQuantities[ol_number - 1] = s_quantity;
-         // clause 2.4.2.2 (dot 8.2)
-         if (s_quantity - ol_quantity >= 10) {
-            s_quantity -= ol_quantity;
-         } else {
-            s_quantity += -ol_quantity + 91;
-         }
+	      s_quantity = s.getS_quantity();
+	      stockQuantities[ol_number - 1] = s_quantity;
+	      // clause 2.4.2.2 (dot 8.2)
+	      if (s_quantity - ol_quantity >= 10) {
+		  s_quantity -= ol_quantity;
+	      } else {
+		  s_quantity += -ol_quantity + 91;
+	      }
 
-         if (ol_supply_w_id == warehouseID) {
-            s_remote_cnt_increment = 0;
-         } else {
-            s_remote_cnt_increment = 1;
-         }
-         // clause 2.4.2.2 (dot 8.2)
-         s.setS_quantity(s_quantity);
-         s.setS_ytd(s.getS_ytd() + ol_quantity);
-         s.setS_remote_cnt(s.getS_remote_cnt() + s_remote_cnt_increment);
-         s.setS_order_cnt(s.getS_order_cnt() + 1);
+	      if (ol_supply_w_id == warehouseID) {
+		  s_remote_cnt_increment = 0;
+	      } else {
+		  s_remote_cnt_increment = 1;
+	      }
+	      // clause 2.4.2.2 (dot 8.2)
+	      s.setS_quantity(s_quantity);
+	      s.setS_ytd(s.getS_ytd() + ol_quantity);
+	      s.setS_remote_cnt(s.getS_remote_cnt() + s_remote_cnt_increment);
+	      s.setS_order_cnt(s.getS_order_cnt() + 1);
 
 
-         // clause 2.4.2.2 (dot 8.3)
-         ol_amount = ol_quantity * i.getI_price();
-         orderLineAmounts[ol_number - 1] = ol_amount;
-         total_amount += ol_amount;
-         // clause 2.4.2.2 (dot 8.4)
-         i_data = i.getI_data();
-         s_data = s.getS_data();
-         if (i_data.contains(TpccTools.ORIGINAL) && s_data.contains(TpccTools.ORIGINAL)) {
-            brandGeneric[ol_number - 1] = 'B';
-         } else {
-            brandGeneric[ol_number - 1] = 'G';
-         }
+	      // clause 2.4.2.2 (dot 8.3)
+	      ol_amount = ol_quantity * i.getI_price();
+	      orderLineAmounts[ol_number - 1] = ol_amount;
+	      // clause 2.4.2.2 (dot 8.4)
+	      i_data = i.getI_data();
+	      s_data = s.getS_data();
+	      if (i_data.contains(TpccTools.ORIGINAL) && s_data.contains(TpccTools.ORIGINAL)) {
+		  brandGeneric[ol_number - 1] = 'B';
+	      } else {
+		  brandGeneric[ol_number - 1] = 'G';
+	      }
 
-         switch ((int) districtID) {
-            case 1:
-               ol_dist_info = s.getS_dist_01();
-               break;
-            case 2:
-               ol_dist_info = s.getS_dist_02();
-               break;
-            case 3:
-               ol_dist_info = s.getS_dist_03();
-               break;
-            case 4:
-               ol_dist_info = s.getS_dist_04();
-               break;
-            case 5:
-               ol_dist_info = s.getS_dist_05();
-               break;
-            case 6:
-               ol_dist_info = s.getS_dist_06();
-               break;
-            case 7:
-               ol_dist_info = s.getS_dist_07();
-               break;
-            case 8:
-               ol_dist_info = s.getS_dist_08();
-               break;
-            case 9:
-               ol_dist_info = s.getS_dist_09();
-               break;
-            case 10:
-               ol_dist_info = s.getS_dist_10();
-               break;
-         }
-         // clause 2.4.2.2 (dot 8.5)
+	      switch ((int) districtID) {
+	      case 1:
+		  ol_dist_info = s.getS_dist_01();
+		  break;
+	      case 2:
+		  ol_dist_info = s.getS_dist_02();
+		  break;
+	      case 3:
+		  ol_dist_info = s.getS_dist_03();
+		  break;
+	      case 4:
+		  ol_dist_info = s.getS_dist_04();
+		  break;
+	      case 5:
+		  ol_dist_info = s.getS_dist_05();
+		  break;
+	      case 6:
+		  ol_dist_info = s.getS_dist_06();
+		  break;
+	      case 7:
+		  ol_dist_info = s.getS_dist_07();
+		  break;
+	      case 8:
+		  ol_dist_info = s.getS_dist_08();
+		  break;
+	      case 9:
+		  ol_dist_info = s.getS_dist_09();
+		  break;
+	      case 10:
+		  ol_dist_info = s.getS_dist_10();
+		  break;
+	      }
+	      // clause 2.4.2.2 (dot 8.5)
 
-         OrderLine ol = new OrderLine(o_id, districtID, warehouseID, ol_number, ol_i_id, ol_supply_w_id, null,
-                                      ol_quantity, ol_amount, ol_dist_info);
-         
-         orderLines.add(ol);
-
+	      OrderLine ol = new OrderLine(o_id, districtID, warehouseID, ol_number, ol_i_id, ol_supply_w_id, null,
+		      ol_quantity, ol_amount, ol_dist_info);
+	      orderLines.add(ol);
+	  } 
+      } else {
+	  List<ParallelTask<Void>> workers = new ArrayList<ParallelTask<Void>>(parallelNestedThreads);
+	  for (int i = 0; i < parallelNestedThreads; i++) {
+	      workers.add(new ParallelNewOrder());
+	  }
+	  int k = 0;
+	  for (Void v : Transaction.current().manageNestedParallelTxs(workers)) {
+	      orderLines.add(this.sharedOrderLines[k]);
+	      k++;
+	  }
+	  
       }
       o.orderLines = new VBox<List<OrderLine>>(orderLines);
 

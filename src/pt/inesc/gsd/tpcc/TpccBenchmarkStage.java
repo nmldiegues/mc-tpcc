@@ -11,6 +11,7 @@ public class TpccBenchmarkStage {
    private int orderStatusWeight = 5;
    private String numberOfItemsInterval = null;
    private transient TpccStressor tpccStressor;
+   private int parallelNestedThreads = 0;
 
    public Map<String, String> executeOnSlave() {
       tpccStressor = new TpccStressor();
@@ -20,6 +21,7 @@ public class TpccBenchmarkStage {
       tpccStressor.setPaymentWeight(this.paymentWeight);
       tpccStressor.setOrderStatusWeight(this.orderStatusWeight);
       tpccStressor.setNumberOfItemsInterval(numberOfItemsInterval);
+      tpccStressor.setParallelNestedSiblings(this.parallelNestedThreads);
 
       try {
          return tpccStressor.stress();
@@ -36,6 +38,10 @@ public class TpccBenchmarkStage {
 
    public void setPerThreadSimulTime(long perThreadSimulTime) {
       this.perThreadSimulTime = perThreadSimulTime;
+   }
+   
+   public void setParallelNestedThreads(int siblings) {
+       this.parallelNestedThreads = siblings;
    }
 
    public void setArrivalRate(int arrivalRate) {

@@ -9,6 +9,7 @@ public class Tpcc {
 	// paymentWeight
 	// orderStatusWeight
 	// numberThreads
+    	// parallelNestedSiblings (0 = disabled, > 0 enabled per thread in numberThreads)
 	// simulationTime
 	public static void main(String[] args) {
 		TpccPopulationStage populationStage = new TpccPopulationStage();

@@ -22,6 +22,7 @@ public class TpccStressor {
    private int paymentWeight = 45;
    private int orderStatusWeight = 5;
    private String numberOfItemsInterval = null;
+   private int parallelNestedThreads = 0;
 
    private long startTime;
    private long endTime;
@@ -209,6 +210,8 @@ public class TpccStressor {
 
       private final TpccTerminal terminal;
 
+      private final int parallelNestedTxs;
+      
       private int nrFailures = 0;
       private int nrWrFailures = 0;
       private int nrRdFailures = 0;
@@ -225,9 +228,10 @@ public class TpccStressor {
       private boolean active = true;
 
       public Stressor(int localWarehouseID, int threadIndex, double arrivalRate,
-                      double paymentWeight, double orderStatusWeight) {
+                      double paymentWeight, double orderStatusWeight, int parallelNestedTxs) {
          super("Stressor-" + threadIndex);
          this.terminal = new TpccTerminal(paymentWeight, orderStatusWeight, localWarehouseID);
+         this.parallelNestedTxs = parallelNestedTxs;
       }
 
       @Override
@@ -259,7 +263,7 @@ public class TpccStressor {
             Transaction tx = Transaction.begin(isReadOnly);
 
             try {
-               transaction.executeTransaction();
+               transaction.executeTransaction(parallelNestedTxs);
             } catch (Throwable e) {
             	tx.abort();
                successful = false;
@@ -377,6 +381,10 @@ public class TpccStressor {
    public void setNumberOfItemsInterval(String numberOfItemsInterval) {
       this.numberOfItemsInterval = numberOfItemsInterval;
    }
+   
+   public void setParallelNestedSiblings(int siblings) {
+       this.parallelNestedThreads = siblings;
+   }
 
    private synchronized void finishBenchmark() {
       if (!running) {
@@ -391,7 +399,7 @@ public class TpccStressor {
 
    private Stressor createStressor(int threadIndex) {
       int localWarehouse = getWarehouseForThread(threadIndex);
-      return new Stressor(localWarehouse, threadIndex, arrivalRate, paymentWeight,orderStatusWeight);
+      return new Stressor(localWarehouse, threadIndex, arrivalRate, paymentWeight,orderStatusWeight, this.parallelNestedThreads);
    }
 
    private synchronized void blockWhileRunning() throws InterruptedException {

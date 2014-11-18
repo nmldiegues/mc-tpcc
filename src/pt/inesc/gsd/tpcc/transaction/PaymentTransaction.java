@@ -71,7 +71,7 @@ public class PaymentTransaction implements TpccTransaction {
    }
    
    @Override
-   public void executeTransaction() throws Throwable {
+   public void executeTransaction(int parallelNestedThreads) throws Throwable {
       paymentTransaction();
    }
 
