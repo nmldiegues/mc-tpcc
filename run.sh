@@ -37,16 +37,16 @@ mkdir auto-results
 ant clean
 ant compile
 cd build/classes
-for warehouses in 8 32
+for warehouses in 1 8 32
 do
-	for workload in {1..10}
+	for workload in {1..7}
 	do
 		for t in 1 2 4 8 16 24 32 48
 		do
 			for a in {1..3}
 			do
 				echo "running: warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a"
-				java -Xms1G -Xmx16G -cp ../../libs/jvstm-2.3.jar:. pt.inesc.gsd.tpcc.Tpcc $warehouses ${workloads[$workload]} $t 15 >> ../../auto-results/$warehouses-${workloadsStr[$workload]}-$t-$a.data &
+				java -Xms16G -Xmx64G -cp ../../libs/jvstm-2.3.jar:. pt.inesc.gsd.tpcc.Tpcc $warehouses ${workloads[$workload]} $t 15 >> ../../auto-results/$warehouses-${workloadsStr[$workload]}-$t-$a.data &
 				pid=$!; wait_until_finish $pid; wait $pid; rc=$?
 				if [[ $rc != 0 ]] ; then
 		                    echo "Error within: running: warehouses $warehouses | workload ${workloads[$workload]} | threads $t | attempt $a" >> ../../auto-results/error.out
