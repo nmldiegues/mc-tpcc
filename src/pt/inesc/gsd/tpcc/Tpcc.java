@@ -20,7 +20,8 @@ public class Tpcc {
 		benchmarkStage.setPaymentWeight(Integer.parseInt(args[1]));
 		benchmarkStage.setOrderStatusWeight(Integer.parseInt(args[2]));
 		benchmarkStage.setNumOfThreads(Integer.parseInt(args[3]));
-		benchmarkStage.setPerThreadSimulTime(Long.parseLong(args[4]));
+		benchmarkStage.setParallelNestedThreads(Integer.parseInt(args[4]));
+		benchmarkStage.setPerThreadSimulTime(Long.parseLong(args[5]));
 		Map<String, String> results = benchmarkStage.executeOnSlave();
 		for (Map.Entry<String, String> pair : results.entrySet()) {
 			System.out.println(pair.getKey() + " " + pair.getValue());
