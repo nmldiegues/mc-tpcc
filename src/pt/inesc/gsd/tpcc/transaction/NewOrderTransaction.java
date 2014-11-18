@@ -83,6 +83,14 @@ public class NewOrderTransaction implements TpccTransaction {
    
    public class ParallelNewOrder extends ParallelTask<Void> {
 
+       private final int min;
+       private final int max;
+       
+       public ParallelNewOrder(int min, int max) {
+	   this.min = min;
+	   this.max = max;
+       }
+       
     @Override
     public Void execute() throws Throwable {
 	long o_id = -1;
@@ -92,7 +100,7 @@ public class NewOrderTransaction implements TpccTransaction {
 	long ol_supply_w_id, ol_i_id, ol_quantity;
 	double ol_amount = 0;
 	// see clause 2.4.2.2 (dot 8)
-	for (int ol_number = 1; ol_number <= numItems; ol_number++) {
+	for (int ol_number = min; ol_number <= max; ol_number++) {
 	    ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
 	    ol_i_id = itemIDs[ol_number - 1];
 	    ol_quantity = orderQuantities[ol_number - 1];
@@ -294,9 +302,12 @@ public class NewOrderTransaction implements TpccTransaction {
 	      orderLines.add(ol);
 	  } 
       } else {
+	  int partition = this.numItems / parallelNestedThreads;
+	  int m = 1;
 	  List<ParallelTask<Void>> workers = new ArrayList<ParallelTask<Void>>(parallelNestedThreads);
 	  for (int i = 0; i < parallelNestedThreads; i++) {
-	      workers.add(new ParallelNewOrder());
+	      workers.add(new ParallelNewOrder(m, m + partition));
+	      m += partition;
 	  }
 	  int k = 0;
 	  for (Void v : Transaction.current().manageNestedParallelTxs(workers)) {
